@@ -1,4 +1,4 @@
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::io::{Seek, SeekFrom};
 
 use anyhow::anyhow;
@@ -98,8 +98,9 @@ pub fn binary_search_in_file<B: BufRead + Seek>(
     Ok(result)
 }
 
-pub fn print_all_occurrences<B: BufRead + Seek>(
+pub fn print_all_occurrences<B: BufRead + Seek, W: Write>(
     b: &mut B,
+    out: &mut W,
     start_position: u64,
     separator: char,
     target: &Value,
@@ -120,7 +121,7 @@ pub fn print_all_occurrences<B: BufRead + Seek>(
         if current != *target {
             break;
         }
-        print!("{s}");
+        write!(out, "{s}")?;
         s.clear();
     }
     Ok(())
@@ -388,5 +389,66 @@ mod tests {
         let mut c = Cursor::new(b"aaa;1\nbbb;2\nccc;3\n");
         let pos = binary_search_in_file(&mut c, ';', &num(2), 1, true).unwrap();
         assert_eq!(pos, Some(6));
+    }
+
+    // --- print_all_occurrences ---
+
+    #[test]
+    fn test_print_single_match() {
+        let mut c = Cursor::new(b"aaa;1\nbbb;2\nccc;3\n");
+        let mut out = Vec::new();
+        print_all_occurrences(&mut c, &mut out, 6, ';', &txt("bbb"), 0, false).unwrap();
+        assert_eq!(out, b"bbb;2\n");
+    }
+
+    #[test]
+    fn test_print_multiple_matches() {
+        // "bbb" compare due volte, entrambe devono essere stampate
+        let mut c = Cursor::new(b"aaa;1\nbbb;2\nbbb;3\nccc;4\n");
+        let mut out = Vec::new();
+        print_all_occurrences(&mut c, &mut out, 6, ';', &txt("bbb"), 0, false).unwrap();
+        assert_eq!(out, b"bbb;2\nbbb;3\n");
+    }
+
+    #[test]
+    fn test_print_first_line() {
+        let mut c = Cursor::new(b"aaa;1\nbbb;2\n");
+        let mut out = Vec::new();
+        print_all_occurrences(&mut c, &mut out, 0, ';', &txt("aaa"), 0, false).unwrap();
+        assert_eq!(out, b"aaa;1\n");
+    }
+
+    #[test]
+    fn test_print_last_line_with_newline() {
+        let mut c = Cursor::new(b"aaa;1\nbbb;2\n");
+        let mut out = Vec::new();
+        print_all_occurrences(&mut c, &mut out, 6, ';', &txt("bbb"), 0, false).unwrap();
+        assert_eq!(out, b"bbb;2\n");
+    }
+
+    #[test]
+    fn test_print_last_line_without_newline() {
+        // file senza \n finale
+        let mut c = Cursor::new(b"aaa;1\nbbb;2");
+        let mut out = Vec::new();
+        print_all_occurrences(&mut c, &mut out, 6, ';', &txt("bbb"), 0, false).unwrap();
+        assert_eq!(out, b"bbb;2");
+    }
+
+    #[test]
+    fn test_print_no_match_at_position() {
+        // start_position punta a "ccc" ma cerchiamo "bbb" → nessun output
+        let mut c = Cursor::new(b"aaa;1\nbbb;2\nccc;3\n");
+        let mut out = Vec::new();
+        print_all_occurrences(&mut c, &mut out, 12, ';', &txt("bbb"), 0, false).unwrap();
+        assert_eq!(out, b"");
+    }
+
+    #[test]
+    fn test_print_non_default_column() {
+        let mut c = Cursor::new(b"aaa;1\nbbb;2\nccc;3\n");
+        let mut out = Vec::new();
+        print_all_occurrences(&mut c, &mut out, 0, ';', &Value::Number(1), 1, true).unwrap();
+        assert_eq!(out, b"aaa;1\n");
     }
 }

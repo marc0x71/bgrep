@@ -73,6 +73,7 @@ fn run() -> Result<bool> {
         match_found = true;
         print_all_occurrences(
             &mut buffer,
+            &mut std::io::stdout(),
             start_position,
             delimiter,
             &target,
