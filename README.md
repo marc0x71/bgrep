@@ -156,3 +156,5 @@ fi
 # or with &&/||
 bgrep -n 999 data.csv && echo "exists"
 ```
+
+> Quick note on AI use: the README and tests were written with AI assistance, so my English isn't great and writing tests bores me... I'll admit it
