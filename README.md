@@ -1,5 +1,6 @@
 # bgrep
-
+[![Rust CI](https://github.com/marc0x71/bgrep/actions/workflows/ci.yml/badge.svg)](https://github.com/marc0x71/bgrep/actions/workflows/ci.yml) ![License](https://img.shields.io/badge/license-MIT-blue)
+  
 **bgrep** is a fast command-line search tool for sorted, delimited text files. Written in Rust, it uses **binary search** to locate records in **O(log n)** time — making it orders of magnitude faster than `grep` on large files where the data is already sorted.
 
 > **When to use bgrep vs grep:**
